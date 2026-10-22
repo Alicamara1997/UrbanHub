@@ -1,0 +1,8 @@
+# Secrets (cle OpenAQ) : ne jamais publier
+.env
+# Donnees : regenerees par les scripts, stockees dans MinIO
+data/
+# Python / Jupyter
+__pycache__/
+*.pyc
+.ipynb_checkpoints/

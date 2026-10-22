@@ -1,0 +1,59 @@
+services:
+  minio:
+    image: cgr.dev/chainguard/minio:latest
+    container_name: urbanhub-minio
+    user: "0:0"
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  jupyter:
+    image: quay.io/jupyter/pyspark-notebook:2024-05-27
+    container_name: urbanhub-jupyter
+    command: start-notebook.py --IdentityProvider.token=''
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks
+      - ./scripts:/home/jovyan/work/scripts
+      - ./data:/home/jovyan/work/data
+    depends_on:
+      - minio
+
+  # Collecte des velos (partie 2) : redemarre toute seule avec Docker
+  collecte-velos:
+    image: quay.io/jupyter/pyspark-notebook:2024-05-27
+    container_name: urbanhub-collecte-velos
+    command: python /home/jovyan/work/scripts/velos_stream.py live
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/home/jovyan/work/scripts
+      - ./data:/home/jovyan/work/data
+    depends_on:
+      - minio
+
+  # Collecte de la pollution (partie 3) : redemarre toute seule avec Docker
+  collecte-pollution:
+    image: quay.io/jupyter/pyspark-notebook:2024-05-27
+    container_name: urbanhub-collecte-pollution
+    command: python /home/jovyan/work/scripts/pollution_iot.py live
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./scripts:/home/jovyan/work/scripts
+      - ./data:/home/jovyan/work/data
+    depends_on:
+      - minio
+
+volumes:
+  minio_data:
